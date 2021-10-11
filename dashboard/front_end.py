@@ -2,6 +2,7 @@ from synthetic_data.time_series_data import make_data_table, time_series_data, a
 from synthetic_data.threed_data import make_features_df
 from data_prep.shapley_prep import iforest_shap
 from data_prep.threed_prep import features_pca
+from data_prep.time_series_prep import upper_lower, set_interpolated_zero
 
 from dash import Dash, html, dcc, dash_table
 
@@ -12,9 +13,8 @@ import dash_bootstrap_components as dbc
 import plotly.express as px
 import pandas as pd
 
-
 # Synthetic Data
-data_table, agg = make_data_table(), time_series_data()
+data_table, agg = make_data_table(), upper_lower(time_series_data())
 anomalies = anomalies_df(agg)
 
 features_df, features = make_features_df()
@@ -24,7 +24,7 @@ comp_normalized = features_pca(features_df, features)
 df_with_shap, shap_cols = iforest_shap(features_df, features)
 
 # App
-app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], prevent_initial_callbacks=True)
 
 app.layout = dbc.Container([
     dcc.Location(id="url"),
@@ -50,8 +50,6 @@ app.layout = dbc.Container([
     dbc.Row([
         dbc.Col([
             html.Div([
-                # html.H2("AI Tools", className="display-5"),
-                html.Hr(),
                 html.P(
                     "Selection Visualization", className="lead"
                 ),
@@ -103,13 +101,13 @@ app.layout = dbc.Container([
                         'minWidth': '230px', 'width': '230px', 'maxWidth': '230px',
                         'whiteSpace': 'normal'
                     },
-                    style_cell_conditional=[  # align text columns to left. By default they are aligned to right
+                    style_cell_conditional=[
                         {
                             'if': {'column_id': c},
                             'textAlign': 'left'
                         } for c in data_table.columns
                     ],
-                    style_data={  # overflow cells' content into multiple lines
+                    style_data={
                         'whiteSpace': 'normal',
                         'height': 'auto',
                         'minWidth': '240px', 'width': '240px', 'maxWidth': '240px',
@@ -127,39 +125,6 @@ app.layout = dbc.Container([
         dcc.Graph(id="page-content", figure={}, responsive=True)
     ], style={"margin-left": "18rem", "margin-right": "0rem"},
     ),
-
-    #     html.Div([
-    #         html.Label(['Choose Years of Border Crossings into the USA:'],
-    #                     style={'font-weight': 'bold'}),
-    #         html.P(),
-    #         dcc.RangeSlider(
-    #             id='my-range-slider', # any name you'd like to give it
-    #             marks={
-
-    #                 1996: '1996',     # key=position, value=what you see
-    #                 2000: '2000',
-    #                 2004: '2004',
-    #                 2008: '2008',
-    #                 2012: '2012',
-    #                 2016: {'label': '2016', 'style': {'color':'#f50', 'font-weight':'bold'}},
-    #                 2018: '2018',
-    #             },
-    #             step=1,                # number of steps between values
-    #             min=1996,
-    #             max=2016,
-    #             value=[1998,2000],     # default value initially chosen
-    #             dots=True,             # True, False - insert dots, only when step>1
-    #             allowCross=False,      # True,False - Manage handle crossover
-    #             disabled=False,        # True,False - disable handle
-    #             pushable=2,            # any number, or True with multiple handles
-    #             updatemode='mouseup',  # 'mouseup', 'drag' - update value method
-    #             included=True,         # True, False - highlight handle
-    #             vertical=False,        # True, False - vertical, horizontal slider
-    #             verticalHeight=900,    # hight of slider (pixels) when vertical=True
-    #             className='None',
-    #             ),
-    #     ], style={"margin-left": "13rem"}),
-
     html.Div(id='selection', children=[], style={'display': 'none'}),
 
 ], fluid=True, style={'width': '100%',
@@ -169,7 +134,6 @@ app.layout = dbc.Container([
                       'margin': '0rem',
                       'font-family': 'Arial'}
 )
-
 
 @app.callback(
     Output('selection', 'children'),
@@ -198,25 +162,25 @@ def update_graph(slctd_rows, dummy_value):
         # df_ref = df_ref.tail(40) ## last 13 months
 
         anomalies_ref = anomalies.loc[anomalies['country_name'] == country]
-        anomalies_ref = anomalies_ref.loc[anomalies_ref['week'] >= df_ref['week'].iloc[0]]
+        anomalies_ref = anomalies_ref.loc[anomalies_ref['begin_date'] >= df_ref['begin_date'].iloc[0]]
 
         fig = go.Figure()
 
         fig.add_trace(go.Scatter(
-            x=df_ref.week, y=df_ref.agg_amount, mode='lines+markers',
+            x=df_ref.begin_date, y=df_ref.agg_amount, mode='lines+markers',
             marker_symbol='circle-open',
             line_color='royalblue',
             name='Actual Transaction'
         ))
 
         fig.add_trace(go.Scatter(
-            x=df_ref.week, y=df_ref.lower, mode='lines',
+            x=df_ref.begin_date, y=df_ref.lower, mode='lines',
             line_color='rgba(46, 139, 87, 0.1)',
             name='Lower Bound'
         ))
 
         fig.add_trace(go.Scatter(
-            x=df_ref.week, y=df_ref.upper, mode='lines',
+            x=df_ref.begin_date, y=df_ref.upper, mode='lines',
             fill='tonexty',
             fillcolor='rgba(46, 139, 87, 0.15)',
             line_color='rgba(46, 139, 87, 0.1)',
@@ -224,13 +188,13 @@ def update_graph(slctd_rows, dummy_value):
         ))
 
         fig.add_trace(go.Scatter(
-            x=df_ref.week, y=df_ref.mv_mean,
+            x=df_ref.begin_date, y=df_ref.mv_mean,
             line=dict(color='rgba(46, 139, 87, 0.5)', width=4, dash='dash'),
             name='Moving Average'
         ))
 
         fig.add_trace(go.Scatter(
-            x=anomalies_ref.week, y=anomalies_ref.agg_amount, mode='markers',
+            x=anomalies_ref.begin_date, y=anomalies_ref.agg_amount, mode='markers',
             line=dict(color='rgb(255,0,0)', width=10),
             name='Outlier'
         ))
@@ -246,7 +210,7 @@ def update_graph(slctd_rows, dummy_value):
             )
         )
 
-        fig.update_layout(xaxis_range=[df_ref.tail(56).week.min(), df_ref.week.max()])
+        fig.update_layout(xaxis_range=[df_ref.tail(56).begin_date.min(), df_ref.begin_date.max()])
         fig.update_layout(margin=dict(l=0, r=0, b=0, t=0))
         fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         fig.update_xaxes(showline=True, linewidth=1, linecolor='black')
