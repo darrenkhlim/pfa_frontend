@@ -1,7 +1,6 @@
 import shap
 import pandas as pd
 from pyod.models.iforest import IForest
-from collections import OrderedDict
 
 def iforest_shap(features_df, features):
     if 'is_outlier' in features_df.columns:
