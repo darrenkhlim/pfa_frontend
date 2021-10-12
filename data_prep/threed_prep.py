@@ -12,7 +12,5 @@ def features_pca(features_df, features):
     comp_normalized['result'] = features_df['is_outlier']
     comp_normalized['header'] = np.where(comp_normalized['result'] == 1.0, features_df['country'], '')
     comp_normalized['country'] = features_df['country']
-    comp_normalized.loc[comp_normalized.result == 0.0, 'colour'] = 'b'
-    comp_normalized.loc[comp_normalized.result == 1.0, 'colour'] = 'r'
     return comp_normalized
 
