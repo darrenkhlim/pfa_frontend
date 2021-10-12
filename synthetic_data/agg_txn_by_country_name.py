@@ -2,30 +2,6 @@ import random
 import pandas as pd
 from datetime import timedelta, datetime
 
-pd.options.display.width= None
-pd.options.display.max_columns= None
-pd.set_option('display.max_rows', 3000)
-pd.set_option('display.max_columns', 3000)
-
-def make_data_table():
-    countries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua & Deps',
-                 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas',
-                 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin',
-                 'Bhutan', 'Bolivia', 'Bosnia Herzegovina', 'Botswana', 'Brazil', 'Brunei',
-                 'Bulgaria', 'Burkina', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde',
-                 'Central African Rep']
-
-    data_table = pd.DataFrame(columns=['Country', 'QtQ amount change credit (%)',
-                                       'QtQ amount change debit (%)', 'Risk Score'])
-    for country in countries:
-        debit = random.randint(-100,100)
-        credit = random.randint(-100,100)
-        ai_score = random.randint(0, 100)
-        data_table = data_table.append({'Country': country.upper(), 'QtQ amount change credit (%)': credit,
-                                        'QtQ amount change debit (%)': debit, 'Risk Score': ai_score},
-                                        ignore_index=True)
-    return data_table
-
 def make_country_data(country, moving_window):
     d1 = datetime.strptime('1/1/2020', '%d/%m/%Y')
     d2 = datetime.strptime('1/12/2023', '%d/%m/%Y')
@@ -52,7 +28,7 @@ def make_outliers(time_series_df):
         time_series_df.at[random.randint(0, time_series_df.index[-1]), 'agg_amount'] = random.randint(100, 1000)
     return time_series_df
 
-def time_series_data():
+def agg_txn_by_country_names():
     countries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua & Deps',
                  'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas',
                  'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin',
@@ -66,8 +42,3 @@ def time_series_data():
 
     agg = pd.concat(agg_num, axis=0)
     return make_outliers(agg)
-
-def anomalies_df(time_series_df):
-    anomalies = time_series_df[(time_series_df.agg_amount < time_series_df.lower) | (time_series_df.agg_amount > time_series_df.upper)]
-    return anomalies
-

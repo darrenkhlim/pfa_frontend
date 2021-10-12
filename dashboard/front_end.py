@@ -1,20 +1,22 @@
-from synthetic_data.time_series_data import make_data_table, time_series_data, anomalies_df
-from synthetic_data.threed_data import make_features_df
+from synthetic_data.agg_txn_by_country_name import agg_txn_by_country_names
+from synthetic_data.agg_by_features import make_features_df
+
 from data_prep.shapley_prep import iforest_shap
 from data_prep.threed_prep import features_pca
-from data_prep.time_series_prep import upper_lower, set_interpolated_zero
+from data_prep.data_table import make_data_table
+from data_prep.time_series_prep import upper_lower, anomalies_df, set_interpolated_zero
 
-from dash import Dash, html, dcc, dash_table
-
-from collections import OrderedDict
-from dash.dependencies import Input, Output
-import plotly.graph_objects as go
 import dash_bootstrap_components as dbc
+from dash import Dash, html, dcc, dash_table
+from dash.dependencies import Input, Output
+from collections import OrderedDict
+import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 
 # Synthetic Data
-data_table, agg = make_data_table(), upper_lower(time_series_data())
+data_table, agg = make_data_table(), upper_lower(agg_txn_by_country_names())
+# agg = set_interpolated_zero(agg)
 anomalies = anomalies_df(agg)
 
 features_df, features = make_features_df()
@@ -134,6 +136,7 @@ app.layout = dbc.Container([
                       'margin': '0rem',
                       'font-family': 'Arial'}
 )
+
 
 @app.callback(
     Output('selection', 'children'),
@@ -258,7 +261,6 @@ def update_graph(slctd_rows, dummy_value):
         #                     text=point_df['header'])
 
         fig = go.Figure(data)
-        fig.update_traces(textfont=dict(family="arial", size=12, color="black"))
         fig.update_layout(scene=dict(
             xaxis=dict(
                 backgroundcolor="rgb(200, 200, 230)",
