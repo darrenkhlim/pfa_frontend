@@ -1,9 +1,9 @@
 from synthetic_data.agg_txn_by_country_name import agg_txn_by_country_names
-from synthetic_data.agg_by_features import make_features_df
+from synthetic_data.agg_by_shap import make_shap_df
+from synthetic_data.agg_by_pca import make_pca_data
 
-from data_prep.shapley_prep import iforest_shap
-from data_prep.threed_prep import features_pca
 from data_prep.data_table import make_data_table
+from data_prep.threed_prep import country_header_pca
 from data_prep.time_series_prep import upper_lower, anomalies_df, set_interpolated_zero
 
 import dash_bootstrap_components as dbc
@@ -16,14 +16,12 @@ import pandas as pd
 
 # Synthetic Data
 data_table, agg = make_data_table(), upper_lower(agg_txn_by_country_names())
+comp_normalized = country_header_pca(make_pca_data())
+df_with_shap, shap_cols = make_shap_df()
+
 # agg = set_interpolated_zero(agg)
-anomalies = anomalies_df(agg)
+anomalies = anomalies_df(agg) # extract out anomalous data
 
-features_df, features = make_features_df()
-
-# Data Prep
-comp_normalized = features_pca(features_df, features)
-df_with_shap, shap_cols = iforest_shap(features_df, features)
 
 # App
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], prevent_initial_callbacks=True)

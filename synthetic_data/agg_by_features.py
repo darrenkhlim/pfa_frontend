@@ -1,6 +1,7 @@
 import random
 import pandas as pd
 
+
 def make_features_df():
     countries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua & Deps',
                  'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas',
@@ -26,4 +27,3 @@ def make_features_df():
     features = list(features_df.columns)[1:-1]
 
     return features_df, features
-
