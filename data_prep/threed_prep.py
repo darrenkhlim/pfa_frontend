@@ -1,16 +1,15 @@
 import numpy as np
-import pandas as pd
-from sklearn.decomposition import PCA
 
-def features_pca(features_df, features):
-    only_features_df = features_df[features]
-    features_np = np.asarray(only_features_df, dtype='float64')
-    pca = PCA(n_components=3)
-    principalComponents = pca.fit_transform(features_np)
-    components_df = pd.DataFrame(principalComponents, columns=['PC_1', 'PC_2', 'PC_3'])
-    comp_normalized= (components_df - components_df.mean())/components_df.std()
-    comp_normalized['result'] = features_df['is_outlier']
-    comp_normalized['header'] = np.where(comp_normalized['result'] == 1.0, features_df['country'], '')
-    comp_normalized['country'] = features_df['country']
-    return comp_normalized
 
+def country_header_pca(pca_data):
+    countries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua & Deps',
+                 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas',
+                 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin',
+                 'Bhutan', 'Bolivia', 'Bosnia Herzegovina', 'Botswana', 'Brazil', 'Brunei',
+                 'Bulgaria', 'Burkina', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde',
+                 'Central African Rep']
+
+    countries = list(map(lambda x: x.upper(), countries))
+    pca_data['country'] = countries
+    pca_data['header'] = np.where(pca_data['result'] == 1.0, pca_data['country'], '')
+    return pca_data

@@ -2,6 +2,7 @@ import pandas as pd
 from synthetic_data.qtq_change_by_country_name import qtq_change_many_months
 from synthetic_data.risk_score_and_seasonality import risk_score_and_seasonality_many_months
 
+
 def make_data_table():
     ## Import Data
     qtq_change_by_country_name = qtq_change_many_months()
