@@ -1,15 +1,19 @@
 import numpy as np
+from synthetic_data.agg_by_features import make_axis_features_many_month
 
 
-def country_header_pca(pca_data):
-    countries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua & Deps',
-                 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas',
-                 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin',
-                 'Bhutan', 'Bolivia', 'Bosnia Herzegovina', 'Botswana', 'Brazil', 'Brunei',
-                 'Bulgaria', 'Burkina', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde',
-                 'Central African Rep']
+def text_header(country, features_df):
+    latest_month = features_df['period_id'].unique()[-1]
+    features_df = features_df.loc[features_df['period_id'] == latest_month]
 
-    countries = list(map(lambda x: x.upper(), countries))
-    pca_data['country'] = countries
-    pca_data['header'] = np.where(pca_data['result'] == 1.0, pca_data['country'], '')
-    return pca_data
+    axis_df = make_axis_features_many_month()  # entry point to change df
+    axis_df = axis_df.loc[axis_df['period_id'] == latest_month]
+    axes = axis_df.loc[axis_df.country == country].values[0][2:]
+
+    plot_df = features_df[axes]
+    plot_df['result'] = features_df['is_outlier']
+    plot_df['country'] = features_df['country_name']
+    plot_df['header'] = np.where(features_df['is_outlier'] == 1.0, plot_df['country'], '')
+
+    return plot_df
+

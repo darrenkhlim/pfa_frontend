@@ -23,9 +23,9 @@ def qtq_change_one_month(month):
 
 
 def qtq_change_many_months():
-    d1 = datetime.strptime('1/2/2021', '%d/%m/%Y')
-    d2 = datetime.strptime('1/3/2021', '%d/%m/%Y')
-    d3 = datetime.strptime('1/4/2021', '%d/%m/%Y')
+    d1 = '2021-02-01'
+    d2 = '2021-03-01'
+    d3 = '2021-04-01'
     durations = [d1, d2, d3]
     qtq_change_by_country_name = pd.DataFrame(columns=['country_name',
                                                        'qtq_change_inflow',
@@ -35,3 +35,4 @@ def qtq_change_many_months():
         qtq_change_by_country_name = qtq_change_by_country_name.append(qtq_change_one_month(month))
 
     return qtq_change_by_country_name
+

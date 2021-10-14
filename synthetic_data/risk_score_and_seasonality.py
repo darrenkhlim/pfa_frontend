@@ -1,5 +1,5 @@
-from datetime import datetime
 import pandas as pd
+import numpy as np
 import random
 
 def risk_score_and_seasonality_one_month(month):
@@ -29,24 +29,24 @@ def risk_score_and_seasonality_one_month(month):
                                        'selected_month': month,
                                        'risk_score_arima': risk_score_arima,
                                        'ch_sea_len': ch_sea_len,
-                                       'length': length,
-                                       'sea_decomp_score': sea_decomp_score},
+                                       'length': int(length),
+                                       'sea_decomp_score': np.abs(sea_decomp_score)},
                                        ignore_index=True)
     return risk_score
 
 
 def risk_score_and_seasonality_many_months():
-    d1 = datetime.strptime('1/2/2021', '%d/%m/%Y')
-    d2 = datetime.strptime('1/3/2021', '%d/%m/%Y')
-    d3 = datetime.strptime('1/4/2021', '%d/%m/%Y')
+    d1 = '2021-02-01'
+    d2 = '2021-03-01'
+    d3 = '2021-04-01'
     durations = [d1, d2, d3]
     risk_score_and_seasonality = pd.DataFrame(columns=['country_name',
-                                       'risk_score_ma',
-                                       'selected_month',
-                                       'risk_score_arima',
-                                       'ch_sea_len',
-                                       'length',
-                                       'sea_decomp_score'])
+                                                       'risk_score_ma',
+                                                       'selected_month',
+                                                       'risk_score_arima',
+                                                       'ch_sea_len',
+                                                       'length',
+                                                       'sea_decomp_score'])
     for month in durations:
         risk_score_and_seasonality = risk_score_and_seasonality.append(risk_score_and_seasonality_one_month(month))
 
