@@ -3,11 +3,12 @@ import pandas as pd
 from datetime import timedelta, datetime
 
 def make_country_data(country, moving_window):
-    d1 = datetime.strptime('1/1/2020', '%d/%m/%Y')
-    d2 = datetime.strptime('1/12/2023', '%d/%m/%Y')
-    duration = pd.date_range(d1, d2 - timedelta(days=7), freq='w')
+    d1 = datetime.strptime('1-1-2020', '%d-%m-%Y')
+    d2 = datetime.strptime('1-12-2023', '%d-%m-%Y')
+    duration = pd.date_range(d1, d2 - timedelta(days=7), freq='w').astype(str)
     week = []
     for i in duration:
+        i = datetime.strptime(i, '%Y-%m-%d')
         week.append(str(i)+'/'+str(i+timedelta(days=6)))
     week_idx = [i for i in range(len(duration))]
     agg_amount = [random.randint(1000, 10000) for i in range(len(duration))]
@@ -42,3 +43,4 @@ def agg_txn_by_country_names():
 
     agg = pd.concat(agg_num, axis=0)
     return make_outliers(agg)
+
