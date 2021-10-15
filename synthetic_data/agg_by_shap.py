@@ -7,6 +7,7 @@ def iforest_prediction(features_df):
     features_df['is_outlier'] = outlier
     return features_df
 
+
 def make_shap_df():
     countries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua & Deps',
                  'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas',

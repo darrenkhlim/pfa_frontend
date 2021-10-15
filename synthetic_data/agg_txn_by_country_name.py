@@ -2,6 +2,7 @@ import random
 import pandas as pd
 from datetime import timedelta, datetime
 
+
 def make_country_data(country, moving_window):
     d1 = datetime.strptime('1-1-2020', '%d-%m-%Y')
     d2 = datetime.strptime('1-12-2023', '%d-%m-%Y')
@@ -22,12 +23,14 @@ def make_country_data(country, moving_window):
     agg['country_name'] = country
     return agg
 
+
 def make_outliers(time_series_df):
     time_series_df.reset_index(inplace=True, drop=True)
     for i in range(round(0.02 * time_series_df.shape[0])):
         time_series_df.at[random.randint(0, time_series_df.index[-1]), 'agg_amount'] = random.randint(10000, 20000)
         time_series_df.at[random.randint(0, time_series_df.index[-1]), 'agg_amount'] = random.randint(100, 1000)
     return time_series_df
+
 
 def agg_txn_by_country_names():
     countries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua & Deps',
