@@ -1,7 +1,5 @@
-from synthetic_data.agg_by_features import make_features_many_months
-
 from data_prep.data_table import make_data_table, make_table_agg_txn_by_country_name
-from data_prep.threed_prep import text_header
+from data_prep.threed_prep import text_header, make_features_df
 from data_prep.time_series_prep import upper_lower, anomalies_df, set_interpolated_zero
 
 import dash_bootstrap_components as dbc
@@ -17,7 +15,7 @@ from datetime import datetime
 # Synthetic Data
 data_table, agg = make_data_table(), upper_lower(make_table_agg_txn_by_country_name())
 anomalies = anomalies_df(agg)  # extract out anomalous data
-features_df, features = make_features_many_months()  # entry point to change df
+features_df, features = make_features_df()  # entry point to change df
 
 # agg = set_interpolated_zero(agg)
 
@@ -127,7 +125,7 @@ app.layout = dbc.Container([
               "margin-right": "2rem",
               'text-indent': '1em'}),
 
-    #html.Br(),
+    html.Br(),
 
     html.Div([
         dcc.Graph(id="page-content", figure={}, responsive=True)
@@ -337,7 +335,7 @@ def update_graph(slctd_rows, dummy_value):
             text=list(positive['header'].values),
             textfont=dict(family="Arial", size=12),
             opacity=0.8,
-            marker=dict(size=12, color=positive.Colour)
+            marker=dict(size=10, color=positive.Colour)
         )
 
         scatter2 = dict(
@@ -346,7 +344,7 @@ def update_graph(slctd_rows, dummy_value):
             type="scatter3d",
             x=negative[x], y=negative[y], z=negative[z],
             opacity=0.8,
-            marker=dict(size=12, color=negative.Colour)
+            marker=dict(size=6, color=negative.Colour)
         )
 
         scatter3 = dict(
@@ -354,7 +352,7 @@ def update_graph(slctd_rows, dummy_value):
             name="Current Point",
             type="scatter3d",
             x=point_df[x], y=point_df[y], z=point_df[z],
-            marker=dict(size=20, color='green'),
+            marker=dict(size=15, color='green'),
             opacity=0.4,
         )
 
@@ -381,7 +379,7 @@ def update_graph(slctd_rows, dummy_value):
             name="Clusters",
             opacity=0.1,
             type="mesh3d",
-            color="rgb(23, 190, 207)",
+            # color="rgb(23, 190, 207)",
             x=comp_normalized[x], y=comp_normalized[y], z=comp_normalized[z],
         )
 
