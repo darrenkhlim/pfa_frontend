@@ -1,18 +1,24 @@
 import random
 import json
 import pandas as pd
-from datetime import datetime
 
 CONFIG = json.load(open('./pfa_dash/config/config_dash.json'))
 
 
 def make_features_one_month(month):
-    countries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua & Deps',
+    """ Create synthetic feature values for a particular month
+    :param month: month of interest
+    :type month: String
+    ...
+    :return: sample features for all countries in a month
+    :rtype: pd.DataFrame
+    """
+    countries = ['Afghanistan', 'Albania', 'Algeria', 'Angola', 'Antigua & Deps',
                  'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas',
                  'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin',
                  'Bhutan', 'Bolivia', 'Bosnia Herzegovina', 'Botswana', 'Brazil', 'Brunei',
                  'Bulgaria', 'Burkina', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde',
-                 'Central African Rep']
+                 'Central African Rep', 'Cayman', 'Myanmar']
 
     features_df = pd.DataFrame(columns=['country_name', 'code', 'period_id', "all_txn_total_avg_14d",
                                         "all_txn_total_amt_7d", "all_txn_credit_avg_150d", "all_txn_debit_ct_90d",
@@ -39,9 +45,13 @@ def make_features_one_month(month):
 
 
 def make_features_many_months():
-    d1 = datetime.strptime('1/2/2021', '%d/%m/%Y')
-    d2 = datetime.strptime('1/3/2021', '%d/%m/%Y')
-    d3 = datetime.strptime('1/4/2021', '%d/%m/%Y')
+    """ Create synthetic feature values for numerous months
+    :return: sample features for all countries in a range of months & feature names
+    :rtype: pd.DataFrame & list
+    """
+    d1 = '2021-02-01 00:00:00'
+    d2 = '2021-03-01 00:00:00'
+    d3 = '2021-04-01 00:00:00'
     durations = [d1, d2, d3]
 
     features_df = pd.DataFrame(columns=['country_name', 'code', 'period_id', "all_txn_total_avg_14d",
@@ -56,13 +66,20 @@ def make_features_many_months():
 
 
 def make_axis_features_one_month(month):
+    """ Create synthetic top 3 features for each country in a given month
+    :param month: month of interest
+    :type month: String
+    ...
+    :return: sample top 3 features for all countries in a given month
+    :rtype: pd.DataFrame
+    """
     features_df, features = make_features_many_months()
     countries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua & Deps',
                  'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas',
                  'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin',
                  'Bhutan', 'Bolivia', 'Bosnia Herzegovina', 'Botswana', 'Brazil', 'Brunei',
                  'Bulgaria', 'Burkina', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde',
-                 'Central African Rep']
+                 'Central African Rep', 'Cayman', 'Myanmar']
 
     axis_df = pd.DataFrame(columns=['country', 'period_id', 'f_x', 'f_y', 'f_z'])
 
@@ -81,13 +98,13 @@ def make_axis_features_one_month(month):
 
 
 def make_axis_features_many_month():
-    d1 = datetime.strptime('1/2/2021', '%d/%m/%Y')
-    d2 = datetime.strptime('1/3/2021', '%d/%m/%Y')
-    d3 = datetime.strptime('1/4/2021', '%d/%m/%Y')
-    durations = [d1, d2, d3]
-
+    """ Create synthetic top 3 features for numerous months
+    :return: sample top 3features for all countries in a range of months
+    :rtype: pd.DataFrame
+    """
+    d1 = '2021-02-01'
+    durations = [d1]
     axis_df = pd.DataFrame(columns=['country', 'period_id', 'f_x', 'f_y', 'f_z'])
-
     for month in durations:
         axis_df = axis_df.append(make_axis_features_one_month(month))
 

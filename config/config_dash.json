@@ -1,6 +1,8 @@
 {
   "ts_db_path": "./pfa_dash/datasets/ts_results.db",
-  "features_db_path": "./pfa_dash/datasets/pfa_poc.sqlite",
+  "features_db_path": "./pfa_dash/datasets/country_level_results.db",
+  "sentiment_db_path": "./pfa_dash/datasets/news_results.db",
+  "modules_to_run": ["ts", "news", "3d"],
   "data_source": "syn",
   "feature_meaning":
    {
@@ -24,7 +26,7 @@
      "all_txn_credit_ct_30d": "Ratio of credit txn count: 30d to 200d",
      "all_txn_credit_avg_14d": "Ratio of credit txn average: 14d to 200d",
      "all_txn_total_amt_150d": "Ratio of total txn amount: 150d to 200d",
-     "all_txn_total_avg_90d": "Ratio oof total txn average: 90d to 200d",
+     "all_txn_total_avg_90d": "Ratio of total txn average: 90d to 200d",
      "all_txn_debit_abg_90d": "Ratio of debit txn average: 90d to 200d",
      "all_txn_debit_amt_30d": "Ratio of debit txn amount: 30d to 200d",
      "all_txn_credit_avg_90d": "Ratio of credit txn average: 90d to 200d",
@@ -46,10 +48,10 @@
      "all_txn_credit_ct_90d": "Ratio of credit txn count: 90d to 200d",
      "all_txn_total_ct_7d": "Ratio of total txn count: 7d to 200d",
      "all_txn_debit_amt_14d": "Ratio of debit txn amount: 14d to 200d",
-     "all_txn_debit_avg_14d": "Ratio od debit txn average: 14d to 200d",
+     "all_txn_debit_avg_14d": "Ratio of debit txn average: 14d to 200d",
      "corporate_tax": "Country corporate tax",
      "all_txn_debit_ct_30d": "Ratio of debit txn count: 30d to 200d",
-     "income_tax_is_high": "Ratio of credit txn count: 14d to 200d",
+     "income_tax_is_high": "High income tax indicator",
      "country_risk": "Country risk level",
      "all_txn_debit_amt_150d": "Ratio of debit txn amount: 150d to 200d",
      "all_txn_total_ct_90d": "Ratio of total txn count: 90d to 200d"

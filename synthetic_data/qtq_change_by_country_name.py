@@ -3,12 +3,19 @@ import random
 
 
 def qtq_change_one_month(month):
+    """ Create synthetic quarter on quarter data for a given month
+    :param month: month of interest
+    :type month: String
+    ...
+    :return: quarter on quarter data for a given month
+    :rtype: pd.DataFrame
+    """
     countries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua & Deps',
                  'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas',
                  'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin',
                  'Bhutan', 'Bolivia', 'Bosnia Herzegovina', 'Botswana', 'Brazil', 'Brunei',
                  'Bulgaria', 'Burkina', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde',
-                 'Central African Rep']
+                 'Central African Rep', 'Cayman', 'Myanmar']
 
     qtq_change = pd.DataFrame(columns=['country_name', 'qtq_change_inflow', 'selected_month', 'qtq_change_outflow'])
     for country in range(len(countries)):
@@ -23,6 +30,10 @@ def qtq_change_one_month(month):
 
 
 def qtq_change_many_months():
+    """ Create synthetic quarter on quarter data for a range of months
+    :return: quarter on quarter data for a range of months
+    :rtype: pd.DataFrame
+    """
     d1 = '2021-02-01'
     d2 = '2021-03-01'
     d3 = '2021-04-01'

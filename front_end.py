@@ -1,24 +1,40 @@
 from data_prep.data_table import make_data_table, make_table_agg_txn_by_country_name
 from data_prep.threed_prep import text_header, make_features_df
 from data_prep.time_series_prep import upper_lower, anomalies_df, set_interpolated_zero
+from data_prep.sentiment_prep import sentiments_redefined_polarity
 
 import dash_bootstrap_components as dbc
-import dash_html_components as html
-import dash_core_components as dcc
-import dash_table
-from dash import Dash
+import plotly.graph_objects as go
 from dash.dependencies import Input, Output
 from dateutil.relativedelta import relativedelta
-import plotly.graph_objects as go
 from datetime import datetime
+from dash import Dash
+import warnings
+import json
 
-# Synthetic Data
-data_table, agg = make_data_table(), upper_lower(make_table_agg_txn_by_country_name())
-anomalies = anomalies_df(agg)  # extract out anomalous data
-features_df, features = make_features_df()  # entry point to change df
+# DASH == 2.0.0
+from dash import html, dcc, dash_table
+
+# DASH == 1.12.0
+# import dash_core_components as dcc
+# import dash_html_components as html
+# import dash_table
+
+warnings.filterwarnings('ignore')
+CONFIG = json.load(open('./pfa_dash/config/config_dash.json'))
+
+# Data
+if "ts" in CONFIG["modules_to_run"]:
+    data_table, agg = make_data_table(), upper_lower(make_table_agg_txn_by_country_name())
+    anomalies = anomalies_df(agg)  # extract out anomalous data
+
+if "3d" in CONFIG["modules_to_run"]:
+    features_df, features = make_features_df()  # entry point to change df
+
+if "news" in CONFIG["modules_to_run"]:
+    sentiments_df = sentiments_redefined_polarity()
 
 # agg = set_interpolated_zero(agg)
-
 
 # App
 app = Dash(__name__, external_stylesheets=[dbc.themes.LUX], prevent_initial_callbacks=True)
@@ -38,7 +54,7 @@ app.layout = dbc.Container([
                            'text_transform': 'uppercase',
                            'letter-spacing': '0.25em',
                            'font-weight': '300',
-                           'padding': '0.8em 0',
+                           'padding': '0.8em',
                            'text-indent': '1em'}),
         ),
     ),
@@ -48,9 +64,6 @@ app.layout = dbc.Container([
     dbc.Row([
         dbc.Col([
             html.Div([
-                # html.P(
-                #     "Selection Visualization", className="lead"
-                # ),
                 dbc.Nav(
                     [
                         dbc.NavLink("Time Series Insight", href="/", active="exact"),
@@ -65,8 +78,8 @@ app.layout = dbc.Container([
                        "top": "60px",
                        "left": 0,
                        "bottom": 0,
-                       "width": "16rem",  # total width of the side bar
-                       "padding": "2rem 1rem",  # top and side gaps
+                       "width": "16rem",
+                       "padding": "2rem 1rem",
                        "background-color": "#f8f9fa",
                        "color": "black",
                        'fontSize': '12',
@@ -75,9 +88,9 @@ app.layout = dbc.Container([
         ]),
     ]),
 
-    html.Div([
-        dbc.Row([
-            dbc.Col([
+    dbc.Row([
+        dbc.Col([
+            html.Div([
                 dash_table.DataTable(
                     id='datatable',
                     columns=[
@@ -96,12 +109,12 @@ app.layout = dbc.Container([
                     selected_rows=[0],  # indices of rows that user selects
                     page_action="native",  # all data is passed to the table up-front or not ('none')
                     page_current=0,  # page number that user is on
-                    page_size=6,  # number of rows visible per page
+                    page_size=7,  # number of rows visible per page
+                    persistence=True,
                     style_cell={
                         'height': 'auto',
                         'minWidth': '230px', 'width': '230px', 'maxWidth': '230px',
                         'whiteSpace': 'normal',
-                        'fontSize': '12',
                         'font-family': 'Arial',
                     },
                     style_cell_conditional=[
@@ -114,6 +127,7 @@ app.layout = dbc.Container([
                         'whiteSpace': 'normal',
                         'height': 'auto',
                         'minWidth': '240px', 'width': '240px', 'maxWidth': '240px',
+                        'font-size': '10px'
                     },
                     style_header={
                         'fontWeight': 'bold',
@@ -123,15 +137,35 @@ app.layout = dbc.Container([
         ]),
     ], style={"margin-left": "18rem",
               "margin-right": "2rem",
-              'text-indent': '1em'}),
+              'text-indent': '1em'}, id='datatable-container'),
 
     html.Br(),
 
-    html.Div([
-        dcc.Graph(id="page-content", figure={}, responsive=True)
-    ], style={"margin-left": "18rem",
-              "margin-right": "0rem"},
-    ),
+    dbc.Row([
+        dbc.Col([
+            html.Div([
+                dcc.Graph(id="page-content",
+                          figure={},
+                          responsive='auto',
+                          config={'displayModeBar': False,
+                                  'showTips': True,
+                                  'doubleClick': 'reset',
+                                  'staticPlot': False,
+                                  'scrollZoom': True,
+                                  'watermark': False},)
+                          #style={'height': '10vh'},)
+            ], style={"margin-left": "18rem",
+                      "margin-right": "2rem",
+                      "margin-bottom": "0rem",
+                      "height": "100%",
+                      "vertical-align": "center"}),
+        ]),
+    ]),
+
+    html.Div(id='sentiments-datatable-container', children=[],
+             style={"margin-left": "2rem",
+                    "margin-right": "2rem",
+                    'text-indent': '1em'}),
 
     html.Div(id='selection', children=[], style={'display': 'none'}),
 
@@ -140,8 +174,7 @@ app.layout = dbc.Container([
                       'overflow-x': 'hidden',
                       'padding': '0rem',
                       'margin': '0rem',
-                      'font-family': 'Arial'}
-)
+                      'font-family': 'Arial'})
 
 
 @app.callback(
@@ -149,6 +182,13 @@ app.layout = dbc.Container([
     [Input("url", "pathname")]
 )
 def render_page_content(pathname):
+    """ Callback function to identify pages
+    :param pathname: web application URL
+    :type pathname: String
+    ...
+    :return: html text to identify existing pages
+    :rtype: String
+    """
     if pathname == "/":
         return 'dummy1'
 
@@ -160,12 +200,89 @@ def render_page_content(pathname):
 
 
 @app.callback(
+    Output(component_id='page-content', component_property='style'),
+    [Input(component_id='selection', component_property='children')]
+)
+def show_hide_element(visibility_state):
+    """ Callback function to adjust CSS for graph component
+    :param visibility_state: html text to identify existing page
+    :type visibility_state: String
+    ...
+    :return: CSS overwrite
+    :rtype: Dictionary
+    """
+    if visibility_state == 'dummy1':
+        return {}
+
+    elif visibility_state == 'dummy2':
+        return {}
+
+    elif visibility_state == 'dummy3':
+        return {"display": "none"}
+
+
+@app.callback(
+    Output(component_id='datatable-container', component_property='style'),
+    [Input(component_id='selection', component_property='children')]
+)
+def show_hide_element(visibility_state):
+    """ Callback function to adjust CSS for dash datatable
+    :param visibility_state: html text to identify existing page
+    :type visibility_state: String
+    ...
+    :return: CSS overwrite
+    :rtype: Dictionary
+    """
+    if visibility_state == 'dummy1':
+        return {"margin-left": "18rem", "margin-right": "2rem", 'text-indent': '1em'}
+
+    elif visibility_state == 'dummy2':
+        return {"margin-left": "18rem", "margin-right": "2rem", 'text-indent': '1em'}
+
+    elif visibility_state == 'dummy3':
+        return {"margin-left": "18rem", "margin-right": "2rem", 'text-indent': '1em'}
+
+
+@app.callback(
+    Output(component_id='sentiments-datatable-container', component_property='style'),
+    [Input(component_id='selection', component_property='children')]
+)
+def show_hide_element(visibility_state):
+    """ Callback function to adjust CSS for sentiments datatable
+    :param visibility_state: html text to identify existing page
+    :type visibility_state: String
+    ...
+    :return: CSS overwrite
+    :rtype: Dictionary
+    """
+    if visibility_state == 'dummy1':
+        return {"margin-left": "18rem", "margin-right": "2rem", 'text-indent': '1em', 'display': 'none'}
+
+    elif visibility_state == 'dummy2':
+        return {"margin-left": "18rem", "margin-right": "2rem", 'text-indent': '1em', 'display': 'none'}
+
+    elif visibility_state == 'dummy3':
+        return {"margin-left": "18rem", "margin-right": "2rem", 'text-indent': '1em'}
+
+
+@app.callback(
     Output(component_id='page-content', component_property='figure'),
     [Input(component_id='datatable', component_property='selected_rows'),
-     Input('selection', 'children'), ]
+     Input(component_id='selection', component_property='children'), ]
 )
 def update_graph(slctd_rows, dummy_value):
+    """ Callback function to update time series and 3D clustering graphs
+    :param slctd_rows: user selection on the main datatable
+    :type slctd_rows: String
+    :param dummy_value: html text to identify existing page
+    :type dummy_value: String
+    ...
+    :return: plotly graph (if applicable)
+    :rtype: plotly graph object
+    """
     if dummy_value == 'dummy1':
+        if "ts" not in CONFIG["modules_to_run"]:
+            return {}
         country = data_table.iloc[slctd_rows[0]][0]
         df_ref = agg.loc[agg['country_name'] == country]
 
@@ -210,7 +327,7 @@ def update_graph(slctd_rows, dummy_value):
         fig.update_yaxes(rangemode="nonnegative")
         fig.update_layout(
             xaxis_title="Period",
-            yaxis_title="Transaction Amount",
+            yaxis_title="Debit Transaction Amount",
             legend_title="Legend",
             font=dict(
                 family="Arial",
@@ -220,88 +337,21 @@ def update_graph(slctd_rows, dummy_value):
 
         max_date_str = df_ref.begin_date.max()
         max_date = datetime.strptime(max_date_str, '%Y-%m-%d')
-        min_date = max_date - relativedelta(years=1)
+        min_date = max_date - relativedelta(years=2)
         fig.update_layout(xaxis_range=[min_date, max_date])
         fig.update_layout(margin=dict(l=0, r=0, b=0, t=0))
         fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        fig.update_layout(height=2000)
         fig.update_xaxes(showline=True, linewidth=1, linecolor='black')
         fig.update_yaxes(showline=True, linewidth=1, linecolor='black')
         return fig
 
     elif dummy_value == 'dummy2':
-        # country = data_table.iloc[slctd_rows[0]][0]
-        # comp_normalized = text_header(country, features_df)
-        # marker_colors = ['red' if r == country else 'rgb(23,190,207)' for r in comp_normalized['country']]
-        # marker_sizes = [14 if r == country else 7 for r in comp_normalized['country']]
-        # marker_dict = dict(size=marker_sizes, color=marker_colors)
-        # texts = [country if r == country else None for r in comp_normalized['country']]
-        #
-        # f1 = comp_normalized.columns[0]
-        # f2 = comp_normalized.columns[1]
-        # f3 = comp_normalized.columns[2]
-        #
-        # scatter = dict(
-        #     mode = "markers+text",
-        #     name = "y",
-        #     type = "scatter3d",
-        #     x = comp_normalized[f1], y = comp_normalized[f2], z = comp_normalized[f3],
-        #     text = texts,
-        #     marker = marker_dict,
-        # )
-        #
-        # clusters = dict(
-        #     alphahull = 7,
-        #     name = "y",
-        #     opacity = 0.1,
-        #     type = "mesh3d",
-        #     color = "rgb(23, 190, 207)",
-        #     x = comp_normalized[f1], y = comp_normalized[f2], z = comp_normalized[f3],
-        # )
-        #
-        # layout = dict(
-        #     height=1000,
-        #     scene = dict(
-        #         xaxis=dict(
-        #             backgroundcolor="white",
-        #             gridcolor="rgb(200, 200, 200)",
-        #             showbackground=True,
-        #             showgrid=True,),
-        #
-        #         yaxis=dict(
-        #             backgroundcolor="white",
-        #             gridcolor="rgb(200, 200, 200)",
-        #             showbackground=True,
-        #             showgrid=True),
-        #
-        #         zaxis=dict(
-        #             backgroundcolor="white",
-        #             gridcolor="rgb(200, 200, 200)",
-        #             showbackground=True,
-        #             showgrid=True,),
-        #
-        #         xaxis_title=dict(
-        #             text=f1, font=dict(size=12)
-        #             ),
-        #
-        #         yaxis_title=dict(
-        #             text=f2, font=dict(size=12)
-        #             ),
-        #
-        #         zaxis_title=dict(
-        #             text=f3, font=dict(size=12)
-        #             ),
-        #
-        #         xaxis_showspikes=False,
-        #         yaxis_showspikes=False,
-        #         zaxis_showspikes=False,
-        #     )
-        # )
-        #
-        # fig = go.Figure(dict(data=[scatter, clusters], layout=layout))
-        # #plot(fig, image='png', image_filename='plot_image', filename='./im.png', output_type='div')
-        # return fig
-
+        if "3d" not in CONFIG["modules_to_run"]:
+            return {}
         country = data_table.iloc[slctd_rows[0]][0]
+        if country not in features_df['country_name'].tolist():
+            return {}
         comp_normalized = text_header(country, features_df)
         comp_normalized.loc[comp_normalized.result == 0.0, 'Colour'] = 'rgb(23, 190, 207)'
         comp_normalized.loc[comp_normalized.result == 1.0, 'Colour'] = 'red'
@@ -310,22 +360,14 @@ def update_graph(slctd_rows, dummy_value):
         negative = comp_normalized.loc[comp_normalized.result == 0.0]
         point_df = comp_normalized.loc[comp_normalized.country == country]
 
+        if country in negative['country'].values:
+            point_df['header'] = country
+        else:
+            point_df['header'] = ''
+
         x = comp_normalized.columns[0]
         y = comp_normalized.columns[1]
         z = comp_normalized.columns[2]
-
-        # data = [go.Scatter3d(x=positive[x], y=positive[y], z=positive[z],
-        #                      mode='markers+text', marker=dict(size=14, color=positive.Colour), opacity=0.8,
-        #                      text=list(positive['header'].values),
-        #                      name='Anomaly'),
-        #
-        #         go.Scatter3d(x=negative[x], y=negative[y], z=negative[z],
-        #                      mode='markers', marker=dict(size=7, color=negative.Colour), opacity=0.8,
-        #                      name='Non Anomaly'),
-        #
-        #         go.Scatter3d(x=point_df[x], y=point_df[y], z=point_df[z],
-        #                      mode='markers', marker=dict(size=15, color='green'), opacity=0.4,
-        #                      name='Current Point')]
 
         scatter1 = dict(
             mode="markers+text",
@@ -333,7 +375,7 @@ def update_graph(slctd_rows, dummy_value):
             type="scatter3d",
             x=positive[x], y=positive[y], z=positive[z],
             text=list(positive['header'].values),
-            textfont=dict(family="Arial", size=12),
+            textfont=dict(family="Arial", size=10),
             opacity=0.8,
             marker=dict(size=10, color=positive.Colour)
         )
@@ -348,77 +390,61 @@ def update_graph(slctd_rows, dummy_value):
         )
 
         scatter3 = dict(
-            mode="markers",
+            mode="markers+text",
             name="Current Point",
             type="scatter3d",
             x=point_df[x], y=point_df[y], z=point_df[z],
-            marker=dict(size=15, color='green'),
-            opacity=0.4,
+            text=list(point_df['header'].values),
+            textfont=dict(family="Arial", size=10),
+            opacity=0.8,
+            marker=dict(size=15, color='#FDDA0D')
         )
-
-        #         fig = px.scatter_3d(comp_normalized, x='PC_1', y='PC_2', z='PC_3',
-        #                             opacity=0.7,
-        #                             size_max=18,
-        #                             color=comp_normalized.Colour,
-        #                             color_discrete_map= {'Blue (Not Anomaly)': 'blue',
-        #                                                  'Red (Anomaly)': 'red',},
-        #                                                  #'Green (Current Point)': 'green'},
-        #                             text=comp_normalized['header'])
-
-        #         fig = px.scatter_3d(point_df, x='PC_1', y='PC_2', z='PC_3',
-        #                     opacity=0.7,
-        #                     size_max=50,
-        #                     color=point_df.Colour,
-        #                     color_discrete_map= {'Blue (Not Anomaly)': 'blue',
-        #                                          'Red (Anomaly)': 'red',},
-        #                                          #'Green (Current Point)': 'green'},
-        #                     text=point_df['header'])
 
         clusters = dict(
             alphahull=7,
             name="Clusters",
             opacity=0.1,
             type="mesh3d",
-            # color="rgb(23, 190, 207)",
             x=comp_normalized[x], y=comp_normalized[y], z=comp_normalized[z],
         )
 
         fig = go.Figure(dict(data=[scatter1, scatter2, scatter3, clusters]))
 
-        fig.update_layout(scene=dict(
-            xaxis=dict(
-                backgroundcolor="white",
-                gridcolor="rgb(200, 200, 200)",
-                showbackground=True,
-                showgrid=True,),
+        fig.update_layout(
+            autosize=True, scene=dict(
+                xaxis=dict(
+                    backgroundcolor="white",
+                    gridcolor="rgb(200, 200, 200)",
+                    showbackground=True,
+                    showgrid=True, ),
 
-            yaxis=dict(
-                backgroundcolor="white",
-                gridcolor="rgb(200, 200, 200)",
-                showbackground=True,
-                showgrid=True),
+                yaxis=dict(
+                    backgroundcolor="white",
+                    gridcolor="rgb(200, 200, 200)",
+                    showbackground=True,
+                    showgrid=True),
 
-            zaxis=dict(
-                backgroundcolor="white",
-                gridcolor="rgb(200, 200, 200)",
-                showbackground=True,
-                showgrid=True,),
+                zaxis=dict(
+                    backgroundcolor="white",
+                    gridcolor="rgb(200, 200, 200)",
+                    showbackground=True,
+                    showgrid=True, ),
 
-            xaxis_title=dict(
-                text=x, font=dict(size=12)
-            ),
+                xaxis_title=dict(
+                    text=x, font=dict(size=12)
+                ),
 
-            yaxis_title=dict(
-                text=y, font=dict(size=12)
-            ),
+                yaxis_title=dict(
+                    text=y, font=dict(size=12)
+                ),
 
-            zaxis_title=dict(
-                text=z, font=dict(size=12)
-            ),
+                zaxis_title=dict(
+                    text=z, font=dict(size=12)
+                ),
 
-            xaxis_showspikes=False,
-            yaxis_showspikes=False,
-            zaxis_showspikes=False,),
+                xaxis_showspikes=False,
+                yaxis_showspikes=False,
+                zaxis_showspikes=False, ),
         )
 
         fig.update_layout(margin=dict(l=0, r=0, b=0, t=0))
@@ -426,50 +452,125 @@ def update_graph(slctd_rows, dummy_value):
         return fig
 
     elif dummy_value == 'dummy3':
-        # country = data_table.iloc[slctd_rows[0]][0]
-        # row = df_with_shap.loc[df_with_shap.country == country].iloc[0]
-        # shaps = row[shap_cols].sort_values(ascending=True).head(5)
-        # sorted_pairs = sorted(dict(shaps).items(), key=lambda k: abs(k[1]), reverse=False)
-        # ordered_dict = OrderedDict(sorted_pairs)
-        # country_shap_df = pd.DataFrame.from_dict(ordered_dict, orient='index', columns=['shapley_value'])
-        # country_shap_df = country_shap_df.reset_index().rename(columns={'index': 'top_features'})
-        # country_shap_df['top_features'] = country_shap_df['top_features'].apply(lambda x: x[5:])
-        #
-        # country_shap_df.loc[country_shap_df['shapley_value'] < 0, 'Colour'] = 'Red'
-        # country_shap_df.loc[country_shap_df['shapley_value'] > 0, 'Colour'] = 'Blue'
-        #
-        # fig = px.bar(country_shap_df, x="shapley_value", y="top_features", orientation='h',
-        #              color=country_shap_df.Colour,
-        #              color_discrete_map={'Red': 'red', 'Blue': 'blue'})
-        #
-        # fig.update_layout(yaxis={'categoryorder': 'array', 'categoryarray': country_shap_df.top_features})
-        # fig.update_layout(margin=dict(l=0, r=0, b=0, t=0))
-        # fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        # fig.update_xaxes(showline=True, linewidth=1, linecolor='black')
-        # fig.update_yaxes(showline=True, linewidth=1, linecolor='black')
-
-        #         positive = country_shap_df.loc[country_shap_df.shapley_value>0]
-        #         negative = country_shap_df.loc[country_shap_df.shapley_value<0]
-
-        #         annotations = []
-        #         for yd, xd in zip(negative.shapley_value, negative.top_features):
-        #             annotations.append(dict(xref='x1', yref='y1',
-        #                                     y=xd, x=yd - 0.005,
-        #                                     text=round(yd,3),
-        #                                     font=dict(family='Arial', size=12, color='black'),
-        #                                     showarrow=False))
-
-        #         for yd, xd in zip(positive.shapley_value, positive.top_features):
-        #             annotations.append(dict(xref='x1', yref='y1',
-        #                                     y=xd, x=yd + 0.005,
-        #                                     text=round(yd,3),
-        #                                     font=dict(family='Arial', size=12, color='black'),
-        #                                     showarrow=False))
-
-        #         fig.update_layout(annotations=annotations)
-
         return {}
 
 
+@app.callback(
+    Output(component_id='sentiments-datatable-container', component_property='children'),
+    [Input(component_id='datatable', component_property='selected_rows'),
+     Input(component_id='selection', component_property='children'), ]
+)
+def update_sentiment(slctd_rows, dummy_value):
+    """ Callback function to update news sentiment datatable
+     :param slctd_rows: user selection on the main datatable
+     :type slctd_rows: String
+     :param dummy_value: html text to identify existing page
+     :type dummy_value: String
+     ...
+     :return: news datatable (if applicable)
+     :rtype: dash datatable component
+     """
+    if dummy_value == 'dummy1':
+        return
+    elif dummy_value == 'dummy2':
+        return
+    elif dummy_value == 'dummy3':
+        if "news" not in CONFIG["modules_to_run"]:
+            return []
+        country = data_table.iloc[slctd_rows[0]][0]
+        sentiments_country_df = sentiments_df.loc[sentiments_df['Country'] == country]
+        sentiments_country_df.drop('Country', axis=1, inplace=True)
+        sentiments_country_df = sentiments_country_df.sort_values(by='Polarity', ascending=True)
+        return dbc.Row([
+            dbc.Col([
+                dash_table.DataTable(
+                    id='sentiment-datatable',
+                    columns=[
+                        {"name": i, "id": i, "deletable": False, "selectable": False, "hideable": False}
+                        for i in sentiments_country_df.columns
+                    ],
+                    data=sentiments_country_df.to_dict("records"),  # contents of the table
+                    editable=False,  # allow editing of the table
+                    filter_action='none',  # allow filtering of data by user ('native') or not ('none')
+                    sort_action="native",  # enables data to be sorted per-column by user or not ('none')
+                    sort_mode="multi",  # sort across 'multi' or 'single' columns
+                    column_selectable=False,  # allow users to select 'multi' or 'single' columns
+                    row_selectable=False,  # allow users to select 'multi' or 'single' rows
+                    row_deletable=False,  # choose if user can delete a row (True) or not (False)
+                    selected_columns=[],  # ids of columns that user selects
+                    selected_rows=[0],  # indices of rows that user selects
+                    page_action="native",  # all data is passed to the table up-front or not ('none')
+                    page_current=0,  # page number that user is on
+                    page_size=15,  # number of rows visible per page
+                    style_cell={
+                        'height': 'auto',
+                        'whiteSpace': 'normal',
+                        'font-family': 'Arial',
+                        'textAlign': 'center',
+                        'maxWidth': '500px',
+                        'overflow': 'hidden',
+                        'textOverflow': 'ellipsis',
+                    },
+                    style_cell_conditional=[
+                        {
+                            'if': {'column_id': 'Headline'},
+                            'textAlign': 'left'
+                        }
+
+                    ],
+                    style_data_conditional=(
+                        [
+                            {
+                                'if': {
+                                    'column_id': 'Polarity',
+                                    'filter_query': '{Polarity} < -0.5',
+                                },
+                                'backgroundColor': '#F9CDC4',
+                                'color': 'black',
+                            },
+
+                            {
+                                'if': {
+                                    'column_id': 'Polarity',
+                                    'filter_query': '{Polarity} > 0.5',
+                                },
+                                'backgroundColor': '#BEE5B0',
+                                'color': 'black',
+                            },
+
+                            {
+                                'if': {
+                                    'column_id': 'Polarity',
+                                    'filter_query': '{Polarity} >= -0.5 && {Polarity} <= 0.5',
+                                },
+                                'backgroundColor': '#FFFCB4',
+                                'color': 'black',
+                            },
+
+                            {
+                                'if': {
+                                    'column_id': 'Headline'
+                                },
+                                'fontWeight': 'bold'
+                            },
+
+                        ]
+                    ),
+                    style_as_list_view=True,
+                    style_data={
+                        'whiteSpace': 'normal',
+                        'height': 'auto',
+                        'lineHeight': '15px',
+                        'font-size': '10px'
+
+                    },
+                    style_header={
+                        'fontWeight': 'bold',
+                    },
+                ),
+            ]),
+        ]),
+
+
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False, port=8888)
