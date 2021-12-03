@@ -10,7 +10,13 @@ CONFIG = json.load(open('./pfa_dash/config/config_dash.json'))
 
 
 def make_data_table(data_source=CONFIG['data_source']):
-    # Import Data
+    """ Creates the data table that is shown in all 3 tabs of the dashboard
+    :param data_source: directs the data source towards synthetic ('syn') or actual transaction data ('db')
+    :type data_source: String
+    ...
+    :return: data table
+    :rtype: pd.DataFrame
+    """
     if data_source == 'syn':
         qtq_change_by_country_name = qtq_change_many_months()
         risk_score_and_seasonality = risk_score_and_seasonality_many_months()
@@ -39,6 +45,13 @@ def make_data_table(data_source=CONFIG['data_source']):
 
 
 def make_table_agg_txn_by_country_name(data_source=CONFIG['data_source']):
+    """  Extract time series data
+    :param data_source: directs the data source towards synthetic ('syn') or actual transaction data ('db')
+    :type data_source: String
+    ...
+    :return: creation of synthetic data or query from database
+    :rtype: Function
+    """
     if data_source == 'syn':
         return agg_txn_by_country_names()
     elif data_source == 'db':
